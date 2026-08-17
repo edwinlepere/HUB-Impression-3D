@@ -151,17 +151,6 @@ const PLATEAUX_COMPAT = {
   PVA:    ['Cool Plate', 'Smooth PEI'],
 }
 
-const FILAMENT_CATALOG = [
-  { _id: 'anycubic-pla-basic',    marque: 'Anycubic', gamme: 'Basic',       type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 190, temp_buse_max: 230, temp_plateau_min: 25, temp_plateau_max: 60,  vitesse_min: 30, vitesse_max: 300, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.24, notes: '' },
-  { _id: 'anycubic-pla-silk',     marque: 'Anycubic', gamme: 'Silk',        type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 200, temp_buse_max: 240, temp_plateau_min: 35, temp_plateau_max: 65,  vitesse_min: 30, vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.24, notes: '' },
-  { _id: 'anycubic-pla-matte',    marque: 'Anycubic', gamme: 'Matte',       type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 190, temp_buse_max: 230, temp_plateau_min: 25, temp_plateau_max: 60,  vitesse_min: 30, vitesse_max: 300, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.24, notes: '' },
-  { _id: 'anycubic-pla-hs',       marque: 'Anycubic', gamme: 'High Speed',  type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 210, temp_buse_max: 250, temp_plateau_min: 35, temp_plateau_max: 65,  vitesse_min: 60, vitesse_max: 600, retraction_distance: 0.5, retraction_vitesse: 60, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.24, notes: '' },
-  { _id: 'anycubic-pla-metal',    marque: 'Anycubic', gamme: 'Metal',       type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 200, temp_buse_max: 240, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 30, vitesse_max: 120, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.3,  notes: '' },
-  { _id: 'anycubic-pla-glow',     marque: 'Anycubic', gamme: 'Glow',        type: 'PLA',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 190, temp_buse_max: 230, temp_plateau_min: 25, temp_plateau_max: 60,  vitesse_min: 30, vitesse_max: 180, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4,  densite: 1.24, notes: '' },
-  { _id: 'anycubic-petg-basic',   marque: 'Anycubic', gamme: 'Basic',       type: 'PETG', diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 230, temp_buse_max: 250, temp_plateau_min: 70, temp_plateau_max: 90,  vitesse_min: 30, vitesse_max: 180, retraction_distance: 1.0, retraction_vitesse: 35, ventilateur_pct: 50,  humidite_sensible: 1, temp_sechage: 65, duree_sechage: 6,  densite: 1.27, notes: '' },
-  { _id: 'anycubic-tpu-basic',    marque: 'Anycubic', gamme: 'Basic',       type: 'TPU',  diametre: 1.75, poids_bobine_vide: 212, temp_buse_min: 220, temp_buse_max: 240, temp_plateau_min: 30, temp_plateau_max: 60,  vitesse_min: 15, vitesse_max: 60,  retraction_distance: 0.5, retraction_vitesse: 25, ventilateur_pct: 100, humidite_sensible: 1, temp_sechage: 60, duree_sechage: 8,  densite: 1.21, notes: '' },
-]
-
 // ── Tips ─────────────────────────────────────────────────────────────────────
 const TIP_S = {
   warn: { bg: 'rgba(245,158,11,.08)', border: 'rgba(245,158,11,.2)', color: '#f59e0b', Icon: AlertTriangle },
@@ -713,9 +702,9 @@ function Accord({ title, icon, open, onToggle, children }) {
 }
 
 // ── CatalogPicker ────────────────────────────────────────────────────────────
-function CatalogPicker({ onSelect, onManual, onCancel }) {
+function CatalogPicker({ catalog, onSelect, onManual, onCancel }) {
   const [q, setQ] = useState('')
-  const filtered = FILAMENT_CATALOG.filter(item => {
+  const filtered = catalog.filter(item => {
     const s = q.toLowerCase()
     return !s || [item.marque, item.gamme, item.type].some(v => v?.toLowerCase().includes(s))
   })
@@ -1284,6 +1273,7 @@ function FilamentCard({ f, onDetail, onEdit, onDelete, onFiche }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function Filaments() {
   const [items, setItems] = useState([])
+  const [catalog, setCatalog] = useState([])
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('Tous')
   const [view, setView] = useState('grid')
@@ -1295,6 +1285,12 @@ export default function Filaments() {
 
   const load = () => window.api.filaments.getAll().then(setItems)
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    fetch('./data/filaments-db.json')
+      .then(r => r.json())
+      .then(d => setCatalog(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [])
 
   const totalBobines = items.reduce((s, f) => s + (f.nb_bobines ?? 0), 0)
   const totalPoids   = items.reduce((s, f) => s + (f.poids_restant ?? 0), 0)
@@ -1567,6 +1563,7 @@ export default function Filaments() {
       {modal?.mode === 'catalog' && (
         <Modal title="Ajouter un filament" onClose={() => setModal(null)} size="lg">
           <CatalogPicker
+            catalog={catalog}
             onSelect={item => setModal({ mode: 'catalog-add', data: { preset: item } })}
             onManual={() => setModal({ mode: 'add', data: { ...empty } })}
             onCancel={() => setModal(null)}

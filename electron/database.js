@@ -22,8 +22,8 @@ function getDb() {
     db.pragma('foreign_keys = ON')
     initSchema()
     migrate()
-    const count = db.prepare('SELECT COUNT(*) as n FROM filaments').get().n
-    if (count === 0) seed(db)
+    const countPlateaux = db.prepare('SELECT COUNT(*) as n FROM plateaux').get().n
+    if (countPlateaux === 0) seed(db)
     seedImages(db)
   }
   return db
@@ -49,23 +49,6 @@ function migrate() {
   tryAdd('ALTER TABLE filaments   ADD COLUMN date_achat TEXT')
   tryAdd('ALTER TABLE filaments   ADD COLUMN lien_achat TEXT')
   tryAdd('ALTER TABLE filaments   ADD COLUMN notes_achat TEXT')
-  // Ajout Photon Mono M7 Pro
-  try {
-    db.prepare(`
-      INSERT OR IGNORE INTO imprimantes (nom, marque, modele, volume_x, volume_y, volume_z, type_extrudeur, diametre_buse, firmware, notes)
-      VALUES (
-        'Anycubic Photon Mono M7 Pro', 'Anycubic', 'Photon Mono M7 Pro',
-        218.88, 122.88, 260,
-        'MSLA / Résine', NULL, 'Anycubic',
-        'Imprimante résine MSLA 14K · LightTurbo 3.0 (COB + lentilles Fresnel). Écran LCD 10,1" 13320×5120 px. Vitesse max 170 mm/h (résine haute vitesse) / 130 mm/h (résine standard). Épaisseur de couche : 0,01–0,2 mm. Uniformité lumineuse ≥90 %. Auto-Fill résine + vidange automatique + contrôle thermique cuve. Résines compatibles : ABS-Like, Standard, ABS-Like Pro, Résine haute vitesse 405 nm. Wash & Cure 3 Plus recommandé (nettoyage IPA puis durcissement UV).'
-      )
-    `).run()
-  } catch (_) {}
-  // Mise à jour Kobra S1 avec specs complètes
-  try {
-    db.prepare(`UPDATE imprimantes SET notes = ? WHERE nom = 'Anycubic Kobra S1 Combo' AND (notes IS NULL OR notes NOT LIKE '%CoreXY%')`)
-      .run('CoreXY · Klipper. Ace Pro multi-filaments (4 couleurs simultanés). Buse 0.4 mm / max 300 °C. Plateau PEI chauffant max 110 °C. Vitesse max 500 mm/s, accélération max 20 000 mm/s². Volume build 220 × 220 × 250 mm. Extrudeur Direct Drive. Rétraction recommandée : 0.5–0.8 mm. Compatible PLA, PETG, ABS/ASA, TPU, Nylon (enceinte conseillée). PA/Pressure Advance typique PLA : 0.03–0.07.')
-  } catch (_) {}
   // Migration des données filaments → bobines (exécutée une seule fois si la table bobines est vide)
   try {
     const bobineCount = db.prepare('SELECT COUNT(*) as n FROM bobines').get().n

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, Printer, Box, AlertTriangle, Lightbulb, Info } from 'lucide-react'
+import { Plus, Pencil, Trash2, Printer, Box, AlertTriangle, Lightbulb, Info, Search, ChevronDown } from 'lucide-react'
 import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -67,6 +67,65 @@ function TipItem({ k, t }) {
     <div style={{ display: 'flex', gap: 10, padding: '9px 12px', borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, alignItems: 'flex-start' }}>
       <s.Icon size={13} color={s.color} style={{ marginTop: 2, flexShrink: 0 }} />
       <span style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.55 }}>{t}</span>
+    </div>
+  )
+}
+
+// ── CatalogPicker ────────────────────────────────────────────────────────────
+function ImprimanteCatalogPicker({ catalog, onSelect, onManual, onCancel }) {
+  const [q, setQ] = useState('')
+  const filtered = catalog.filter(item => {
+    const s = q.toLowerCase()
+    return !s || [item.marque, item.modele, item.type_extrudeur].some(v => v?.toLowerCase().includes(s))
+  })
+  return (
+    <div>
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
+        <input
+          className="input"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          placeholder="Rechercher Bambu Lab, Prusa, Creality…"
+          style={{ paddingLeft: 36 }}
+          autoFocus
+        />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16, maxHeight: 400, overflowY: 'auto' }}>
+        {filtered.map(item => (
+          <button
+            key={item._id}
+            type="button"
+            onClick={() => { const { _id, ...rest } = item; onSelect(rest) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+              background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12,
+              cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--bg)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface2)' }}
+          >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(59,130,246,.12)', border: '1px solid rgba(59,130,246,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Printer size={14} color="#60a5fa" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {item.marque} {item.modele}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                {item.type_extrudeur}{item.volume_x ? ` · ${item.volume_x}×${item.volume_y}×${item.volume_z} mm` : ''}
+              </div>
+            </div>
+            <ChevronDown size={13} color="var(--muted)" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
+          </button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+        <button type="button" className="btn-ghost" onClick={onManual} style={{ fontSize: 13 }}>
+          Saisie manuelle (remplir moi-même)
+        </button>
+        <button type="button" className="btn-ghost" onClick={onCancel}>Annuler</button>
+      </div>
     </div>
   )
 }
@@ -303,17 +362,24 @@ function ImprimanteCard({ p, onDetail, onEdit, onDelete }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function Imprimantes() {
   const [items, setItems] = useState([])
+  const [catalog, setCatalog] = useState([])
   const [detail, setDetail] = useState(null)
   const [modal, setModal] = useState(null)
   const [confirm, setConfirm] = useState(null)
 
   const load = () => window.api.imprimantes.getAll().then(setItems)
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    fetch('./data/printers-db.json')
+      .then(r => r.json())
+      .then(d => setCatalog(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [])
 
   const handleSave = async () => {
     const { mode, data } = modal
     if (!data.nom) return alert('Le nom est requis.')
-    if (mode === 'add') await window.api.imprimantes.create(data)
+    if (mode === 'add' || mode === 'catalog-add') await window.api.imprimantes.create(data)
     else await window.api.imprimantes.update(data.id, data)
     setModal(null); load()
   }
@@ -327,7 +393,7 @@ export default function Imprimantes() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 3 }}>Imprimantes</h1>
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>{items.length} imprimante{items.length !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn-primary" onClick={() => setModal({ mode: 'add', data: { ...empty } })}>
+        <button className="btn-primary" onClick={() => setModal({ mode: 'catalog' })}>
           <Plus size={15} /> Ajouter
         </button>
       </div>
@@ -354,8 +420,18 @@ export default function Imprimantes() {
           <ImprimanteDetail p={detail} onEdit={() => openEdit(detail)} onClose={() => setDetail(null)} />
         </Modal>
       )}
-      {modal && (
-        <Modal title={modal.mode === 'add' ? 'Ajouter une imprimante' : "Modifier l'imprimante"} onClose={() => setModal(null)}>
+      {modal?.mode === 'catalog' && (
+        <Modal title="Ajouter une imprimante" onClose={() => setModal(null)} size="lg">
+          <ImprimanteCatalogPicker
+            catalog={catalog}
+            onSelect={preset => setModal({ mode: 'catalog-add', data: { ...empty, ...preset, nom: `${preset.marque} ${preset.modele}` } })}
+            onManual={() => setModal({ mode: 'add', data: { ...empty } })}
+            onCancel={() => setModal(null)}
+          />
+        </Modal>
+      )}
+      {(modal?.mode === 'add' || modal?.mode === 'catalog-add' || modal?.mode === 'edit') && (
+        <Modal title={modal.mode === 'edit' ? "Modifier l'imprimante" : 'Ajouter une imprimante'} onClose={() => setModal(null)}>
           <ImprimanteForm data={modal.data} onChange={d => setModal(m => ({ ...m, data: d }))} onSave={handleSave} onCancel={() => setModal(null)} />
         </Modal>
       )}

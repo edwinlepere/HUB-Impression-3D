@@ -1,3 +1,7 @@
+<div align="center">
+
+<img src="logo.png" alt="HUB Impression 3D" width="120" />
+
 # HUB Impression 3D
 
 > Application desktop locale tout-en-un pour les makers de l'impression 3D — filaments, bobines, imprimantes, profils de découpe et calculateur de coût de revient.
@@ -9,7 +13,9 @@
 ![Platform](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-22c55e)
 
-Inspiré de [3dfilamentprofiles.com](https://3dfilamentprofiles.com/fr), conçu pour fonctionner **100 % hors-ligne** — aucun compte, aucun serveur, toutes les données stockées localement en SQLite sur votre machine.
+</div>
+
+Conçu pour fonctionner **100 % hors-ligne** — aucun compte, aucun serveur, toutes les données stockées localement en SQLite sur votre machine.
 
 ---
 

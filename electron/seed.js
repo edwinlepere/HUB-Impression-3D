@@ -65,13 +65,6 @@ function seedImages(db) {
 }
 
 function seed(db) {
-  // ── Imprimantes ─────────────────────────────────────────────────────────────
-  db.prepare(`
-    INSERT OR IGNORE INTO imprimantes (id, nom, marque, modele, volume_x, volume_y, volume_z, type_extrudeur, diametre_buse, firmware, img, notes)
-    VALUES (1, 'Anycubic Kobra S1 Combo', 'Anycubic', 'Kobra S1 Combo', 220, 220, 250, 'Direct Drive', 0.4, 'Anycubic', 'kobra-s1.webp',
-      'Impression haute performance, multi-matériaux. Compatible PLA (toutes finitions), PETG, TPU, ABS, ASA — plateau chauffant, grand volume de build.')
-  `).run()
-
   // ── Plateaux ────────────────────────────────────────────────────────────────
   const plateaux = [
     { nom: 'Carbon Fiber / Diamond Dark',   type: 'Autre',       surface: "Face A : Carbone — Face B : Diamond Dark",       temp_min: 0, temp_max: 110, preparation: 'Nettoyage IPA avant impression', compatible_filaments: 'PLA, PETG',            img: 'carbon-diamond.webp',   notes: 'Rendu carbone sur une face, motif géométrique sombre sur l\'autre. Finition mate premium.' },
@@ -85,46 +78,11 @@ function seed(db) {
   ]
 
   const insertPlateau = db.prepare(`
-    INSERT OR IGNORE INTO plateaux (nom, type, surface, temp_min, temp_max, preparation, compatible_filaments, img, notes)
-    VALUES (@nom, @type, @surface, @temp_min, @temp_max, @preparation, @compatible_filaments, @img, @notes)
+    INSERT INTO plateaux (nom, type, surface, temp_min, temp_max, preparation, compatible_filaments, img, notes)
+    SELECT @nom, @type, @surface, @temp_min, @temp_max, @preparation, @compatible_filaments, @img, @notes
+    WHERE NOT EXISTS (SELECT 1 FROM plateaux WHERE nom = @nom)
   `)
   for (const p of plateaux) insertPlateau.run(p)
-
-  // ── Filaments ───────────────────────────────────────────────────────────────
-  const filaments = [
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Beige',        code_couleur: '#D4B996', img: 'beige-pla-basique.webp',        diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique. ~60°C. ±0,2mm. Décoration, figurines, prototypes.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Blanc',        code_couleur: '#FFFFFF', img: 'blanc-pla-basique.webp',        diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Bleu',         code_couleur: '#247CDB', img: 'bleu-pla-basique.webp',         diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Jaune',        code_couleur: '#F3E500', img: 'jaune-pla-basique.webp',        diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Noir',         code_couleur: '#111111', img: 'noir-pla-basique.webp',         diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Rose Pêche',   code_couleur: '#FFC196', img: 'rose-peche-pla-basique.webp',   diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Rouge',        code_couleur: '#C8102E', img: 'rouge-pla-basique.webp',        diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Texture Gris', code_couleur: '#75787B', img: 'texture-gris-pla-basique.webp', diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Vert',         code_couleur: '#009639', img: 'vert-pla-basique.webp',         diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PLA',  couleur: 'Violet',       code_couleur: '#6A6DCD', img: 'violet-pla-basique.webp',       diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Basique.' },
-    { marque: 'Stock TFB', gamme: 'Silk',          type: 'PLA',  couleur: 'Rose',         code_couleur: '#FCAFC0', img: 'rose-pla-silk.webp',            diametre: 1.75, temp_buse_min: 200, temp_buse_max: 230, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 40,  vitesse_max: 150, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Silk. Finition satinée brillante, rendu premium.' },
-    { marque: 'Stock TFB', gamme: 'Silk',          type: 'PLA',  couleur: 'Vert Noël',    code_couleur: '#008755', img: 'vert-noel-pla-silk.webp',       diametre: 1.75, temp_buse_min: 200, temp_buse_max: 230, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 40,  vitesse_max: 150, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Silk. Finition satinée brillante, rendu premium.' },
-    { marque: 'Stock TFB', gamme: 'Metal',         type: 'PLA',  couleur: 'Noir Metal',   code_couleur: '#43403D', img: 'noir-metal-pla-metal.webp',     diametre: 1.75, temp_buse_min: 200, temp_buse_max: 230, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 40,  vitesse_max: 120, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.3,  notes: 'PLA Metal. Particules métalliques — aspect acier brossé. Buse durcie recommandée.' },
-    { marque: 'Stock TFB', gamme: 'Glow',          type: 'PLA',  couleur: 'Bleu Phospho', code_couleur: '#00AFD7', img: 'bleu-pla-glow.webp',            diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 180, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Glow. Phosphorescent — brille dans le noir 15–30 min.' },
-    { marque: 'Stock TFB', gamme: 'Mat',           type: 'PLA',  couleur: 'Marron',       code_couleur: '#927968', img: 'marron-pla-mat.webp',           diametre: 1.75, temp_buse_min: 190, temp_buse_max: 220, temp_plateau_min: 45, temp_plateau_max: 60,  vitesse_min: 50,  vitesse_max: 200, retraction_distance: 0.8, retraction_vitesse: 40, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Mat. Surface mate sans reflets, rendu professionnel.' },
-    { marque: 'Stock TFB', gamme: 'Haute Vitesse', type: 'PLA',  couleur: 'Gris',         code_couleur: '#696C6D', img: 'gris-pla-hautevitesse.webp',    diametre: 1.75, temp_buse_min: 210, temp_buse_max: 240, temp_plateau_min: 45, temp_plateau_max: 65,  vitesse_min: 100, vitesse_max: 600, retraction_distance: 0.5, retraction_vitesse: 60, ventilateur_pct: 100, humidite_sensible: 0, temp_sechage: 50, duree_sechage: 4, densite: 1.24, notes: 'PLA Haute Vitesse. Formulé pour imprimer 2–3× plus vite.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'PETG', couleur: 'Noir',         code_couleur: '#111111', img: 'noir-petg-basique.webp',        diametre: 1.75, temp_buse_min: 230, temp_buse_max: 250, temp_plateau_min: 70, temp_plateau_max: 85,  vitesse_min: 30,  vitesse_max: 100, retraction_distance: 1.0, retraction_vitesse: 35, ventilateur_pct: 50,  humidite_sensible: 1, temp_sechage: 65, duree_sechage: 6, densite: 1.27, notes: 'PETG Basique. ~80°C. ±0,2mm. Pièces fonctionnelles, usage extérieur. ATTENTION : colle aux plateaux PEI — laisser refroidir complètement.' },
-    { marque: 'Stock TFB', gamme: 'Basique',       type: 'TPU',  couleur: 'Bleu',         code_couleur: '#005EB8', img: 'bleu-tpu-basique.webp',         diametre: 1.75, temp_buse_min: 220, temp_buse_max: 240, temp_plateau_min: 30, temp_plateau_max: 60,  vitesse_min: 15,  vitesse_max: 40,  retraction_distance: 0.5, retraction_vitesse: 25, ventilateur_pct: 100, humidite_sensible: 1, temp_sechage: 60, duree_sechage: 8, densite: 1.21, notes: 'TPU Flexible. ~80°C. ±0,3mm. IMPRESSION LENTE OBLIGATOIRE. Coques téléphone, joints, semelles.' },
-  ]
-
-  const insertFilament = db.prepare(`
-    INSERT OR IGNORE INTO filaments
-      (marque, gamme, type, couleur, code_couleur, img, diametre,
-       temp_buse_min, temp_buse_max, temp_plateau_min, temp_plateau_max,
-       vitesse_min, vitesse_max, retraction_distance, retraction_vitesse,
-       ventilateur_pct, humidite_sensible, temp_sechage, duree_sechage, densite, notes)
-    VALUES
-      (@marque, @gamme, @type, @couleur, @code_couleur, @img, @diametre,
-       @temp_buse_min, @temp_buse_max, @temp_plateau_min, @temp_plateau_max,
-       @vitesse_min, @vitesse_max, @retraction_distance, @retraction_vitesse,
-       @ventilateur_pct, @humidite_sensible, @temp_sechage, @duree_sechage, @densite, @notes)
-  `)
-  for (const f of filaments) insertFilament.run(f)
 }
 
 module.exports = { seed, seedImages }
