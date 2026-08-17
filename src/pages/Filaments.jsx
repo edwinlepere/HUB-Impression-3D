@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Plus, Pencil, Trash2, Package, Search, Droplets, Flame, Wind,
   LayoutGrid, List, ChevronUp, ChevronDown, AlertTriangle, Lightbulb, Info,
@@ -701,64 +701,94 @@ function Accord({ title, icon, open, onToggle, children }) {
   )
 }
 
-// ── CatalogPicker ────────────────────────────────────────────────────────────
-function CatalogPicker({ catalog, onSelect, onManual, onCancel }) {
-  const [q, setQ] = useState('')
-  const filtered = catalog.filter(item => {
-    const s = q.toLowerCase()
-    return !s || [item.marque, item.gamme, item.type].some(v => v?.toLowerCase().includes(s))
-  })
+// ── FilamentAddNew : autocomplete inline + QuickAddForm intégré ──────────────
+function FilamentAddNew({ catalog, onSaveQuick, onManual, onCancel }) {
+  const [preset, setPreset] = useState(null)
+  const [q, setQ]           = useState('')
+  const [open, setOpen]     = useState(false)
+  const ref = useRef(null)
+
+  const matches = q.trim().length >= 1
+    ? catalog.filter(({ marque, gamme, type }) =>
+        [marque, gamme, type].some(v => v?.toLowerCase().includes(q.toLowerCase()))
+      ).slice(0, 10)
+    : []
+
+  useEffect(() => {
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+
+  const selectPreset = item => {
+    const { _id, ...rest } = item
+    setPreset(rest)
+    setQ(`${item.marque}${item.gamme ? ' ' + item.gamme : ''} ${item.type}`)
+    setOpen(false)
+  }
+
   return (
     <div>
-      <div style={{ position: 'relative', marginBottom: 16 }}>
-        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
-        <input
-          className="input"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder="Rechercher Anycubic PLA, PETG…"
-          style={{ paddingLeft: 36 }}
-          autoFocus
-        />
+      <div ref={ref} style={{ position: 'relative', marginBottom: preset ? 16 : 0 }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
+          <input
+            className="input"
+            value={q}
+            onChange={e => { setQ(e.target.value); setOpen(true); if (!e.target.value.trim()) setPreset(null) }}
+            onFocus={() => { if (q.trim()) setOpen(true) }}
+            placeholder="Bambu Lab PLA, Prusament PETG, eSUN Silk… → remplit automatiquement"
+            style={{ paddingLeft: 36 }}
+            autoFocus
+          />
+        </div>
+        {open && matches.length > 0 && (
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,.4)', zIndex: 200, overflow: 'hidden' }}>
+            {matches.map((item, i) => {
+              const tc = TYPE_COLOR[item.type] || TYPE_COLOR.default
+              return (
+                <button
+                  key={item._id}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); selectPreset(item) }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    background: 'transparent', border: 'none',
+                    borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 10, background: tc.bg, color: tc.text, border: `1px solid ${tc.border}`, flexShrink: 0 }}>
+                    {item.type}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.marque}{item.gamme ? ' ' + item.gamme : ''} {item.type}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
+                      buse {item.temp_buse_min}–{item.temp_buse_max}°C · plateau {item.temp_plateau_min}–{item.temp_plateau_max}°C · ventilo {item.ventilateur_pct}%
+                    </div>
+                  </div>
+                  <ChevronDown size={12} color="var(--muted)" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-        {filtered.map(item => {
-          const tc = TYPE_COLOR[item.type] || TYPE_COLOR.default
-          return (
-            <button
-              key={item._id}
-              type="button"
-              onClick={() => { const { _id, ...rest } = item; onSelect(rest) }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
-                background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 12,
-                cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--bg)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface2)' }}
-            >
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 10, background: tc.bg, color: tc.text, border: `1px solid ${tc.border}`, flexShrink: 0 }}>
-                {item.type}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {item.marque} {item.gamme} {item.type}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>
-                  buse {item.temp_buse_min}–{item.temp_buse_max}°C · plateau {item.temp_plateau_min}–{item.temp_plateau_max}°C
-                </div>
-              </div>
-              <ChevronDown size={13} color="var(--muted)" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
-            </button>
-          )
-        })}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-        <button type="button" className="btn-ghost" onClick={onManual} style={{ fontSize: 13 }}>
-          Saisie manuelle (remplir moi-même)
-        </button>
-        <button type="button" className="btn-ghost" onClick={onCancel}>Annuler</button>
-      </div>
+
+      {preset ? (
+        <QuickAddForm preset={preset} onSave={onSaveQuick} onCancel={onCancel} />
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, marginTop: 8, borderTop: '1px solid var(--border)' }}>
+          <button type="button" className="btn-ghost" onClick={onManual} style={{ fontSize: 13 }}>
+            Saisie manuelle (remplir moi-même)
+          </button>
+          <button type="button" className="btn-ghost" onClick={onCancel}>Annuler</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -1315,14 +1345,6 @@ export default function Filaments() {
 
   const handleSave = async () => {
     const { mode, data } = modal
-    if (mode === 'catalog-add') {
-      const { filamentData, bobineData } = data
-      const created = await window.api.filaments.create(filamentData)
-      if (created?.id) {
-        await window.api.bobines.create({ ...bobineData, filament_id: created.id })
-      }
-      setModal(null); load(); return
-    }
     if (!data.marque || !data.type) return alert('Marque et type requis.')
     if (mode === 'add') await window.api.filaments.create(data)
     else await window.api.filaments.update(data.id, data)
@@ -1561,24 +1583,15 @@ export default function Filaments() {
         </Modal>
       ) : null}
       {modal?.mode === 'catalog' && (
-        <Modal title="Ajouter un filament" onClose={() => setModal(null)} size="lg">
-          <CatalogPicker
-            catalog={catalog}
-            onSelect={item => setModal({ mode: 'catalog-add', data: { preset: item } })}
-            onManual={() => setModal({ mode: 'add', data: { ...empty } })}
-            onCancel={() => setModal(null)}
-          />
-        </Modal>
-      )}
-      {modal?.mode === 'catalog-add' && (
         <Modal title="Ajouter un filament" onClose={() => setModal(null)}>
-          <QuickAddForm
-            preset={modal.data.preset}
-            onSave={async ({ filament, bobine }) => {
+          <FilamentAddNew
+            catalog={catalog}
+            onSaveQuick={async ({ filament, bobine }) => {
               const created = await window.api.filaments.create(filament)
               if (created?.id) await window.api.bobines.create({ ...bobine, filament_id: created.id })
               setModal(null); load()
             }}
+            onManual={() => setModal({ mode: 'add', data: { ...empty } })}
             onCancel={() => setModal(null)}
           />
         </Modal>

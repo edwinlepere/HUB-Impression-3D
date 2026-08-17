@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Pencil, Trash2, SquareStack, AlertTriangle, Lightbulb, Info } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Plus, Pencil, Trash2, SquareStack, AlertTriangle, Lightbulb, Info, Search, ChevronDown } from 'lucide-react'
 import Modal from '../components/Modal'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -236,8 +236,80 @@ function PlateauDetail({ pl, onEdit, onClose }) {
   )
 }
 
+// ── Catalog inline search ────────────────────────────────────────────────────
+function PlateauCatalogSearch({ catalog, onSelect }) {
+  const [q, setQ]       = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  const matches = q.trim().length >= 1
+    ? catalog.filter(({ nom, type }) =>
+        [nom, type].some(v => v?.toLowerCase().includes(q.toLowerCase()))
+      ).slice(0, 10)
+    : []
+
+  useEffect(() => {
+    const close = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <div style={{ position: 'relative' }}>
+        <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
+        <input
+          className="input"
+          value={q}
+          onChange={e => { setQ(e.target.value); setOpen(true) }}
+          onFocus={() => { if (q.trim()) setOpen(true) }}
+          placeholder="PEI texturé, Carbon Fiber, Holographique… → remplit automatiquement"
+          style={{ paddingLeft: 36 }}
+        />
+      </div>
+      {open && matches.length > 0 && (
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '100%', marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,.4)', zIndex: 200, overflow: 'hidden' }}>
+          {matches.map((item, i) => {
+            const accent = PLATEAU_ACCENT[item.type] || PLATEAU_ACCENT.default
+            return (
+              <button
+                key={item._id}
+                type="button"
+                onMouseDown={e => {
+                  e.preventDefault()
+                  const { _id, ...rest } = item
+                  onSelect(rest)
+                  setQ(item.nom)
+                  setOpen(false)
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                  background: 'transparent', border: 'none',
+                  borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: `${accent}18`, border: `1px solid ${accent}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <SquareStack size={13} color={accent} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.nom}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{item.type} · max {item.temp_max}°C · {item.compatible_filaments}</div>
+                </div>
+                <ChevronDown size={12} color="var(--muted)" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }} />
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Form ─────────────────────────────────────────────────────────────────────
-function PlateauForm({ data, onChange, onSave, onCancel }) {
+function PlateauForm({ data, onChange, onSave, onCancel, catalog = [] }) {
   const f = field => e => onChange({ ...data, [field]: e.target.value })
   const n = field => e => onChange({ ...data, [field]: e.target.value === '' ? '' : Number(e.target.value) })
 
@@ -258,6 +330,18 @@ function PlateauForm({ data, onChange, onSave, onCancel }) {
 
   return (
     <div>
+      {catalog.length > 0 && (
+        <div style={{ marginBottom: 4 }}>
+          <div className="label" style={{ marginBottom: 6 }}>Rechercher dans le catalogue</div>
+          <PlateauCatalogSearch
+            catalog={catalog}
+            onSelect={preset => onChange({ ...data, ...preset })}
+          />
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, marginBottom: 2 }}>
+            Sélectionner un plateau remplit automatiquement tous les champs ci-dessous.
+          </div>
+        </div>
+      )}
       {section('Identification')}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={{ gridColumn: 'span 2' }}>
@@ -405,12 +489,19 @@ function PlateauCard({ pl, onDetail, onEdit, onDelete }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function Plateaux() {
   const [items, setItems] = useState([])
+  const [catalog, setCatalog] = useState([])
   const [detail, setDetail] = useState(null)
   const [modal, setModal] = useState(null)
   const [confirm, setConfirm] = useState(null)
 
   const load = () => window.api.plateaux.getAll().then(setItems)
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    fetch('./data/plateaux-db.json')
+      .then(r => r.json())
+      .then(d => setCatalog(Array.isArray(d) ? d : []))
+      .catch(() => {})
+  }, [])
 
   const handleSave = async () => {
     const { mode, data } = modal
@@ -458,7 +549,7 @@ export default function Plateaux() {
       )}
       {modal && (
         <Modal title={modal.mode === 'add' ? 'Ajouter un plateau' : 'Modifier le plateau'} onClose={() => setModal(null)}>
-          <PlateauForm data={modal.data} onChange={d => setModal(m => ({ ...m, data: d }))} onSave={handleSave} onCancel={() => setModal(null)} />
+          <PlateauForm data={modal.data} onChange={d => setModal(m => ({ ...m, data: d }))} onSave={handleSave} onCancel={() => setModal(null)} catalog={modal.mode === 'add' ? catalog : []} />
         </Modal>
       )}
       {confirm && (
