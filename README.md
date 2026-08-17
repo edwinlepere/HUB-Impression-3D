@@ -10,7 +10,7 @@
 ![Electron](https://img.shields.io/badge/Electron-31-47848F?logo=electron&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![SQLite](https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite&logoColor=white)
-![Platform](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows&logoColor=white)
+![Platform](https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-multiplateforme-0078D4)
 ![License](https://img.shields.io/badge/license-MIT-22c55e)
 
 </div>
@@ -29,7 +29,7 @@ Quand on imprime en 3D sérieusement, on accumule rapidement :
 - Des plateaux interchangeables aux comportements distincts
 - La question récurrente : **"ça me coûte combien à produire ?"**
 
-Les solutions existantes sont soit des spreadsheets bricolés, soit des services cloud qui nécessitent un compte et une connexion. HUB Impression 3D est une application **desktop native Windows**, 100 % locale, sans abonnement, sans publicité, sans envoi de données.
+Les solutions existantes sont soit des spreadsheets bricolés, soit des services cloud qui nécessitent un compte et une connexion. HUB Impression 3D est une application **desktop native multiplateforme** (Windows, macOS, Linux), 100 % locale, sans abonnement, sans publicité, sans envoi de données.
 
 Elle se lance, elle fonctionne — hors ligne, hors réseau, pour toujours.
 
@@ -207,7 +207,7 @@ Renderer (React)  ←→  contextBridge (preload.js)  ←→  Main process (Elec
 
 - Node.js 18+
 - npm 9+
-- Windows 10 / 11
+- Windows 10 / 11, macOS 12+, ou Linux (Ubuntu 20.04+ / Debian 11+)
 
 ---
 
@@ -233,18 +233,24 @@ Vite démarre sur `http://localhost:5173`, Electron s'ouvre automatiquement avec
 
 ---
 
-## Build Windows
+## Build
 
 ```bash
 npm run dist
 ```
 
-Génère dans `dist/` :
+Génère dans `dist/` selon le système hôte :
 
-| Fichier | Type |
-|---|---|
-| `HUB Impression 3D Setup 1.0.0.exe` | Installateur NSIS (choix du répertoire) |
-| `HUB Impression 3D 1.0.0 Portable.exe` | Exécutable portable autonome (aucune installation) |
+| OS | Fichier | Type |
+|---|---|---|
+| Windows | `HUB Impression 3D Setup 1.0.0.exe` | Installateur NSIS (choix du répertoire) |
+| Windows | `HUB Impression 3D 1.0.0 Portable.exe` | Exécutable portable autonome |
+| macOS | `HUB Impression 3D-1.0.0.dmg` | Image disque installable |
+| macOS | `HUB Impression 3D-1.0.0-mac.zip` | Archive autonome |
+| Linux | `HUB Impression 3D-1.0.0.AppImage` | Binaire universel (aucune installation) |
+| Linux | `hub-impression-3d_1.0.0_amd64.deb` | Paquet Debian / Ubuntu |
+
+> `electron-builder` génère uniquement les cibles de la plateforme sur laquelle il s'exécute. Pour cross-compiler, utiliser une CI (GitHub Actions par exemple).
 
 ---
 
@@ -287,18 +293,27 @@ hub-impression-3d/
 
 ## Base de données
 
-Stockée automatiquement dans le profil utilisateur Windows :
+Stockée automatiquement dans le dossier `userData` Electron, qui varie selon l'OS :
 
-```
-%APPDATA%\hub-impression-3d\hub-impression-3d.sqlite
-```
+| OS | Chemin |
+|---|---|
+| Windows | `%APPDATA%\hub-impression-3d\hub-impression-3d.sqlite` |
+| macOS | `~/Library/Application Support/hub-impression-3d/hub-impression-3d.sqlite` |
+| Linux | `~/.config/hub-impression-3d/hub-impression-3d.sqlite` |
 
 Les migrations sont appliquées au démarrage — aucune action manuelle requise lors d'une mise à jour.
 
 **Réinitialiser complètement (supprime toutes les données) :**
 
+Windows (PowerShell) :
 ```powershell
 Remove-Item "$env:APPDATA\hub-impression-3d\hub-impression-3d.sqlite"
+```
+
+macOS / Linux :
+```bash
+rm ~/Library/Application\ Support/hub-impression-3d/hub-impression-3d.sqlite  # macOS
+rm ~/.config/hub-impression-3d/hub-impression-3d.sqlite                        # Linux
 ```
 
 Au prochain lancement, la base est recréée et le seed est réinjecté.
